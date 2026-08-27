@@ -35,7 +35,7 @@ __all__ = [
     # Subpackages
     "element",
     # Modules
-    "helpers",
+    "config",
     "parser",
     "tags"
 ]
