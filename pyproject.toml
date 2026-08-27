@@ -1,9 +1,9 @@
 [project]
 name = "python-gedcom"
-version = "1.1.0"
+version = "1.2.0"
 description = "A Python module for parsing, analyzing, and manipulating GEDCOM files."
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 license = {text = "GPLv2"}
 authors = [
     {name = "Nicklas Reincke", email = "3816295+nickreynke@users.noreply.github.com"}
@@ -14,7 +14,6 @@ classifiers = [
     "Topic :: Sociology :: Genealogy",
     "License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -23,7 +22,9 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
 ]
 keywords = ["python", "gedcom", "parser"]
-dependencies = []
+dependencies = [
+    "pydantic>=2",
+]
 
 [project.urls]
 "Bug Reports" = "https://github.com/nickreynke/python-gedcom/issues"
@@ -32,17 +33,19 @@ Homepage = "https://github.com/nickreynke/python-gedcom"
 
 [dependency-groups]
 dev = [
-    "setuptools",
-    "wheel",
+    "maturin",
     "twine",
-    "tox",
+    "mypy",
     "pdoc3",
     "pytest",
 ]
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["maturin>=1.7,<2"]
+build-backend = "maturin"
 
-[tool.hatch.build.targets.wheel]
-packages = ["gedcom"]
+[tool.maturin]
+python-source = "."
+module-name = "gedcom._gedcom"
+features = ["extension-module"]
+include = ["gedcom/_gedcom.pyi", "gedcom/py.typed"]
