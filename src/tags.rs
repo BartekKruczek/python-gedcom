@@ -33,6 +33,9 @@ pub const WIFE: &str = "WIFE";
 pub const MEMBERS_ALL: &str = "ALL";
 pub const MEMBERS_PARENTS: &str = "PARENTS";
 
+/// Every tag above, paired with the `gedcom.tags` name it mirrors.
+///
+/// The selectors are absent: they are not GEDCOM tags.
 pub const ALL: &[(&str, &str)] = &[
     ("GEDCOM_PROGRAM_DEFINED_TAG_MREL", MREL),
     ("GEDCOM_PROGRAM_DEFINED_TAG_FREL", FREL),
