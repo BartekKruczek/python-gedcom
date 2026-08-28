@@ -9,9 +9,12 @@ class _ConfigLike(Protocol):
     plain object works just as well as the pydantic one.
     """
 
-    strict: bool
-    encoding: str
-    on_error: str
+    @property
+    def strict(self) -> bool: ...
+    @property
+    def encoding(self) -> str: ...
+    @property
+    def on_error(self) -> str: ...
 
 class GedcomFormatViolationError(Exception): ...
 class NotAnActualFamilyError(Exception): ...
@@ -47,6 +50,98 @@ class ParseError:
         """The message the parser would have raised
 
         :rtype: str
+        """
+
+class SourceInfo:
+    """What the document's own header said about itself.
+
+    Present on `Parser.source` after a parse with `load_from_source` set, and
+    `None` otherwise.
+    """
+
+    @property
+    def character_set(self) -> str | None:
+        """The `HEAD.CHAR` value, verbatim
+
+        :rtype: str or None
+        """
+    @property
+    def encoding(self) -> str:
+        """The codec the document was actually read with
+
+        :rtype: str
+        """
+    @property
+    def gedcom_version(self) -> str | None:
+        """The `HEAD.GEDC.VERS` value -- which GEDCOM release the file claims
+
+        :rtype: str or None
+        """
+    @property
+    def name(self) -> str | None:
+        """The program's name, if it is one `gedcom.config.sources` knows
+
+        :rtype: str or None
+        """
+    @property
+    def notes(self) -> list[str]:
+        """What the header said that does not add up, in plain words
+
+        Never fatal: a mislabelled header is ordinary, and the file still reads.
+
+        :rtype: list of str
+        """
+    @property
+    def system(self) -> str | None:
+        """The `HEAD.SOUR` value, verbatim
+
+        :rtype: str or None
+        """
+    @property
+    def unterminated_final_line(self) -> bool:
+        """Whether the final line was allowed to carry no terminator
+
+        :rtype: bool
+        """
+    @property
+    def version(self) -> str | None:
+        """The `HEAD.SOUR.VERS` value -- the version of the program, not of GEDCOM
+
+        :rtype: str or None
+        """
+
+class Finding:
+    """One thing wrong with a document."""
+
+    @property
+    def line_number(self) -> int:
+        """The 1-based line the finding is about, or `0` for the document as a whole
+
+        :rtype: int
+        """
+    @property
+    def message(self) -> str:
+        """What is wrong, in plain words
+
+        :rtype: str
+        """
+    @property
+    def rule(self) -> str:
+        """A stable identifier for the rule, such as `"tag-not-in-version"`
+
+        :rtype: str
+        """
+    @property
+    def severity(self) -> str:
+        """`"error"` for a violation, `"warning"` for something merely suspect
+
+        :rtype: str
+        """
+    @property
+    def tag(self) -> str | None:
+        """The tag of the offending line, if the finding is about one
+
+        :rtype: str or None
         """
 
 class Element:
@@ -306,7 +401,7 @@ class Parser:
         """Return path from descendant to ancestor
         :rtype: list of IndividualElement or None
         """
-    def get_ancestors(self, individual: IndividualElement, ancestor_type: str = "ALL") -> list[Element]:
+    def get_ancestors(self, individual: IndividualElement, ancestor_type: str = "ALL") -> list[IndividualElement]:
         """Return elements corresponding to ancestors of an individual
 
         Optional `ancestor_type`. Default "ALL" returns all ancestors, "NAT" can be
@@ -314,7 +409,7 @@ class Parser:
 
         :type individual: IndividualElement
         :type ancestor_type: str
-        :rtype: list of Element
+        :rtype: list of IndividualElement
         """
     def get_element_dictionary(self) -> dict[str, Element]:
         """Returns a dictionary containing all elements, identified by a pointer, from within the GEDCOM file
@@ -436,6 +531,20 @@ class Parser:
     def save_gedcom(self, open_file: IO[str]) -> None:
         """Save GEDCOM data to a file
         :type open_file: file
+        """
+    @property
+    def source(self) -> SourceInfo | None:
+        """What the last document's header said about itself
+
+        `None` unless the parser was built with `load_from_source=True`.
+
+        :rtype: SourceInfo or None
+        """
+    def validate(self, version: str | None = None) -> list[Finding]:
+        """Checks the parsed document against the GEDCOM release it declares
+
+        :type version: str
+        :rtype: list of Finding
         """
 
 def _tag_constants() -> dict[str, str]: ...

@@ -33,9 +33,9 @@ A Python module for parsing, analyzing, and manipulating GEDCOM files.
 
 __all__ = [
     # Subpackages
+    "config",
     "element",
     # Modules
-    "config",
     "parser",
     "tags"
 ]
