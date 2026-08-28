@@ -267,9 +267,32 @@ pub fn child_view(py: Python<'_>, arena: &Py<Arena>, id: u32) -> PyResult<Vec<Ch
     Ok(children)
 }
 
-/// GEDCOM element
-
 #[pyclass(subclass, weakref, module = "gedcom.element.element")]
+/// GEDCOM element
+///
+/// Each line in a GEDCOM file is an element with the format
+///
+/// `level [pointer] tag [value]`
+///
+/// where `level` and `tag` are required, and `pointer` and `value` are
+/// optional.  Elements are arranged hierarchically according to their
+/// level, and elements with a level of zero are at the top level.
+/// Elements with a level greater than zero are children of their
+/// parent.
+///
+/// A pointer has the format `@pname@`, where `pname` is any sequence of
+/// characters and numbers. The pointer identifies the object being
+/// pointed to, so that any pointer included as the value of any
+/// element points back to the original object.  For example, an
+/// element may have a `FAMS` tag whose value is `@F1@`, meaning that this
+/// element points to the family record in which the associated person
+/// is a spouse. Likewise, an element with a tag of `FAMC` has a value
+/// that points to a family record in which the associated person is a
+/// child.
+///
+/// See a GEDCOM file for examples of tags and their values.
+///
+/// Tags available to an element are seen here: `gedcom.tags`
 pub struct Element {
     pub arena: Py<Arena>,
     pub id: u32,
@@ -506,10 +529,14 @@ impl Element {
         Ok(element)
     }
 
+    /// Returns the level of this element from within the GEDCOM file
+    /// :rtype: int
     fn get_level(&self, py: Python<'_>) -> i64 {
         self.level(py)
     }
 
+    /// Returns the pointer of this element from within the GEDCOM file
+    /// :rtype: str or None
     pub fn get_pointer(&self, _py: Python<'_>) -> Option<String> {
         self.arena
             .get()
@@ -518,18 +545,26 @@ impl Element {
             .map(|text| text.to_owned())
     }
 
+    /// Returns the tag of this element from within the GEDCOM file
+    /// :rtype: str
     fn get_tag(&self, _py: Python<'_>) -> String {
         self.arena.get().read().effective_tag_of(self.id).to_owned()
     }
 
+    /// Return the value of this element from within the GEDCOM file
+    /// :rtype: str
     fn get_value(&self, _py: Python<'_>) -> String {
         self.arena.get().read().value_of(self.id).to_owned()
     }
 
+    /// Sets the value of this element
+    /// :type value: str
     fn set_value(&self, _py: Python<'_>, value: String) -> PyResult<()> {
         self.arena.get().write().set_value_of(self.id, &value)
     }
 
+    /// Returns the direct child elements of this element
+    /// :rtype: list of Element
     pub fn get_child_elements(&self, py: Python<'_>) -> PyResult<Py<PyList>> {
         let ids: Vec<u32> = {
             let data = self.arena.get().read();
@@ -558,7 +593,11 @@ impl Element {
     }
 
     /// Creates and returns a new child element of this element
-
+    ///
+    /// :type tag: str
+    /// :type pointer: str
+    /// :type value: str
+    /// :rtype: Element
     #[pyo3(signature = (tag, pointer = "", value = ""))]
     fn new_child_element(
         slf: &Bound<'_, Self>,
@@ -599,7 +638,8 @@ impl Element {
     }
 
     /// Adds a child element to this element
-
+    ///
+    /// :type element: Element
     fn add_child_element(
         slf: &Bound<'_, Self>,
         element: &Bound<'_, PyAny>,
@@ -615,7 +655,7 @@ impl Element {
     }
 
     /// Returns the parent element of this element
-
+    /// :rtype: Element or None
     fn get_parent_element(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
         let parent = {
             let data = self.arena.get().read();
@@ -631,7 +671,11 @@ impl Element {
     }
 
     /// Adds a parent element to this element
-
+    ///
+    /// There's usually no need to call this method manually,
+    /// `add_child_element()` calls it automatically.
+    ///
+    /// :type element: Element
     fn set_parent_element(&self, py: Python<'_>, element: &Bound<'_, PyAny>) -> PyResult<()> {
         ensure_registered(py, element)?;
         let mut data = self.arena.get().write();
@@ -650,7 +694,7 @@ impl Element {
     }
 
     /// Returns the value of this element including concatenations or continuations
-
+    /// :rtype: str
     fn get_multi_line_value(slf: &Bound<'_, Self>) -> PyResult<String> {
         let py = slf.py();
         let borrowed = slf.borrow();
@@ -677,14 +721,15 @@ impl Element {
     }
 
     /// Sets the value of this element, adding concatenation and continuation lines when necessary
-    
+    /// :type value: str
     fn set_multi_line_value(slf: &Bound<'_, Self>, value: String) -> PyResult<()> {
         let borrowed = slf.borrow();
         borrowed.apply_multi_line_value(slf.py(), Some(slf.as_any()), &value)
     }
 
     /// Formats this element and optionally all of its sub-elements into a GEDCOM string
-
+    /// :type recursive: bool
+    /// :rtype: str
     #[pyo3(signature = (recursive = false))]
     fn to_gedcom_string(slf: &Bound<'_, Self>, recursive: bool) -> PyResult<String> {
         let py = slf.py();
@@ -718,6 +763,7 @@ impl Element {
         Ok(out)
     }
 
+    /// :rtype: str
     fn __str__(slf: &Bound<'_, Self>) -> PyResult<String> {
         if is_builtin_element(slf.as_any()) {
             return Element::to_gedcom_string(slf, false);
@@ -827,7 +873,8 @@ impl Element {
                 out
             }
         };
-        Ok(bounded::available_characters(rendered.chars().count()))
+        let limit = self.arena.get().read().line_limit();
+        Ok(bounded::available_characters(rendered.chars().count(), limit))
     }
 
     fn set_bounded_value(

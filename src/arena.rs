@@ -125,9 +125,20 @@ pub struct ArenaData {
     pub handles: Vec<Option<Py<PyAny>>>,
     materialized: Vec<Option<Py<PyList>>>,
     foreign_parents: HashMap<u32, Py<PyAny>>,
+    line_limit: usize,
 }
 
+pub const DEFAULT_LINE_LIMIT: usize = 255;
+
 impl ArenaData {
+    pub fn line_limit(&self) -> usize {
+        self.line_limit
+    }
+
+    pub fn set_line_limit(&mut self, limit: usize) {
+        self.line_limit = limit;
+    }
+
     pub fn node(&self, id: u32) -> &Node {
         &self.nodes[id as usize]
     }
@@ -436,6 +447,7 @@ impl Arena {
                 handles: Vec::with_capacity(capacity),
                 materialized: Vec::new(),
                 foreign_parents: HashMap::new(),
+                line_limit: DEFAULT_LINE_LIMIT,
             }),
         }
     }

@@ -61,10 +61,10 @@ pub fn line_length(line: &[char], available: usize) -> usize {
     available - spaces
 }
 
-pub fn available_characters(rendered_length: usize) -> usize {
-    if rendered_length > 255 {
+pub fn available_characters(rendered_length: usize, limit: usize) -> usize {
+    if rendered_length > limit {
         0
     } else {
-        255 - rendered_length
+        limit - rendered_length
     }
 }
